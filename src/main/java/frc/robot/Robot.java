@@ -4,9 +4,24 @@
 
 package frc.robot;
 
+import edu.wpi.first.wpilibj.Talon;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.Victor;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+
+import edu.wpi.first.networktables.EntryListenerFlags;
+import edu.wpi.first.networktables.NetworkTable;
+import edu.wpi.first.networktables.NetworkTableEntry;
+import edu.wpi.first.networktables.NetworkTableInstance;
+
+import edu.wpi.first.wpilibj.VictorSP;
+import edu.wpi.first.wpilibj.drive.DifferentialDrive;
+import edu.wpi.first.wpilibj.SpeedControllerGroup;
+
+import edu.wpi.first.wpilibj.controller.PIDController;
+
+
 
 /**
  * The VM is configured to automatically run this class, and to call the functions corresponding to
@@ -20,6 +35,25 @@ public class Robot extends TimedRobot {
   private String m_autoSelected;
   private final SendableChooser<String> m_chooser = new SendableChooser<>();
 
+  /*---Network Table Variables---*/
+  NetworkTableEntry distanceEntry;
+  NetworkTableEntry orientationEntry;
+  double distance;
+  double orientation;
+
+  /*---Drive train variables---*/
+  VictorSP leftTop;
+  VictorSP leftBottom;
+  VictorSP rightTop;
+  VictorSP rightBottom;
+  SpeedControllerGroup m_left;
+  SpeedControllerGroup m_right;
+  DifferentialDrive m_drive;
+
+  /*---PID---*/
+  PIDController pid;
+
+
   /**
    * This function is run when the robot is first started up and should be used for any
    * initialization code.
@@ -29,6 +63,38 @@ public class Robot extends TimedRobot {
     m_chooser.setDefaultOption("Default Auto", kDefaultAuto);
     m_chooser.addOption("My Auto", kCustomAuto);
     SmartDashboard.putData("Auto choices", m_chooser);
+
+    // Motors and Drivetrain setup
+    leftTop = new VictorSP(0);
+    leftBottom = new VictorSP(1);
+    rightTop = new VictorSP(2);
+    rightBottom = new VictorSP(3);
+    m_left = new SpeedControllerGroup(leftTop, leftBottom);
+    m_right = new SpeedControllerGroup(rightTop, rightBottom);
+    m_drive = new DifferentialDrive(m_left, m_right);
+
+
+    // Network Table Setup
+    NetworkTableInstance inst = NetworkTableInstance.getDefault();
+    NetworkTable table = inst.getTable("Vision");
+    distanceEntry = table.getEntry("distance");
+    orientationEntry = table.getEntry("orientation");
+    distanceEntry.addListener(event -> {
+      distance = Double.parseDouble(event.value.getValue().toString());
+      System.out.println("Distance: " + event.value.getValue());
+    }, EntryListenerFlags.kNew | EntryListenerFlags.kUpdate);
+    orientationEntry.addListener(event -> {
+      orientation = Double.parseDouble(event.value.getValue().toString());
+      System.out.println("Orientation: " + event.value.getValue());
+    }, EntryListenerFlags.kNew | EntryListenerFlags.kUpdate);
+
+    // PID setup
+    double kp = 0.5;
+    double ki = 0;
+    double kd = 0;
+    pid = new PIDController(kp, ki, kd);
+
+
   }
 
   /**
@@ -70,11 +136,25 @@ public class Robot extends TimedRobot {
         // Put default auto code here
         break;
     }
+
+    
+
+
   }
 
   /** This function is called once when teleop is enabled. */
   @Override
-  public void teleopInit() {}
+  public void teleopInit() {
+    
+
+    // Adjust orientation using PID
+    double process = pid.calculate(orientation, 0); // orientation of the ball should always be at center (0)
+    
+    m_drive.tankDrive(process, -process);
+
+
+
+  }
 
   /** This function is called periodically during operator control. */
   @Override
@@ -95,4 +175,12 @@ public class Robot extends TimedRobot {
   /** This function is called periodically during test mode. */
   @Override
   public void testPeriodic() {}
+
+  public void searchForBall() {
+    if(distance == -1) {
+      m_drive.
+      m_drive.tankDrive(0.5, -0.5);
+      
+    }
+  }
 }
