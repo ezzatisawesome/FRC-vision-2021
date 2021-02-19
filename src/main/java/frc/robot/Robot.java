@@ -6,6 +6,7 @@ package frc.robot;
 
 import edu.wpi.first.wpilibj.Talon;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.Victor;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -144,21 +145,18 @@ public class Robot extends TimedRobot {
 
   /** This function is called once when teleop is enabled. */
   @Override
-  public void teleopInit() {
-    
-
-    // Adjust orientation using PID
-    double process = pid.calculate(orientation, 0); // orientation of the ball should always be at center (0)
-    
-    m_drive.tankDrive(process, -process);
-
-
-
-  }
+  public void teleopInit() {}
 
   /** This function is called periodically during operator control. */
   @Override
-  public void teleopPeriodic() {}
+  public void teleopPeriodic() {
+    if (distance == -1) {
+      searchForBall();
+      centerBall();
+      intakeBall();
+    }
+    
+  }
 
   /** This function is called once when the robot is disabled. */
   @Override
@@ -176,11 +174,28 @@ public class Robot extends TimedRobot {
   @Override
   public void testPeriodic() {}
 
+  /*---Vision Ball Search Functions---*/
   public void searchForBall() {
     if(distance == -1) {
-      m_drive.
       m_drive.tankDrive(0.5, -0.5);
-      
+      Timer.delay(0.2);
+      m_drive.tankDrive(0, 0);
     }
+  }
+
+  public void centerBall() {
+    // Adjust orientation using PID
+    while (orientation-0 > 50) {
+      double process = pid.calculate(orientation, 0); // orientation of the ball should always be at center (0)
+      m_drive.tankDrive(process, -process);
+    }
+    
+  }
+
+  public void intakeBall() {
+    while (distance > 10) {
+      m_drive.tankDrive(0.5, 0.5);
+    }
+    m_drive.tankDrive(0, 0);
   }
 }
